@@ -1,8 +1,7 @@
-from constants import MSAD_PERIODS
+from .constants import MSAD_PERIODS
 import pandas as pd
 import re
 import numpy as np
-import math
 
 
 def prepare_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -67,7 +66,7 @@ def add_pivot(df: pd.DataFrame) -> pd.DataFrame:
     Рассчитывает кривую Pivot ((High + Low + Close) / 3).
     '''
 
-    df['PIVOT'] = (df['HIGH'] + df['LOW'] + df['CLOSE']) / 3
+    df['PIVOT'] = np.round((df['HIGH'] + df['LOW'] + df['CLOSE']) / 3, 5)
     return df
 
 
@@ -105,29 +104,68 @@ def add_fractals(df: pd.DataFrame) -> pd.DataFrame:
         Candle[2] Close > Candle[2] Open (зелёная свеча).
     '''
 
-    df["IS_FRACTAL_DOWN"] = np.where(
-        (
-            df["LOW"] < df.shift()["LOW"] and
-            df["LOW"] < df.shift(-1)["LOW"]
-        ) or
-        (
-            df["LOW"] == df.shift()["LOW"] and
-            df["LOW"] < df.shift(-1)["LOW"] and
-            df.shift(-1)["CANDLE_COLOR"] == "green"
-        ),
-        1,
-        0
-    )
+    df["LOW_PREV"] = df.shift()["LOW"]
+    df["LOW_NEXT"] = df.shift(-1)["LOW"]
+    df["HIGH_PREV"] = df.shift()["HIGH"]
+    df["HIGH_NEXT"] = df.shift(-1)["HIGH"]
+    df["CANDLE_COLOR_PREV"] = df.shift()["CANDLE_COLOR"]
+    df["CANDLE_COLOR_NEXT"] = df.shift(-1)["CANDLE_COLOR"]
+
     df["IS_FRACTAL_UP"] = np.where(
-        (
-            df["HIGH"] > df.shift()["HIGH"] and
-            df["HIGH"] > df.shift(-1)["HIGH"]
-        ) or
-        (
-            df["HIGH"] == df.shift()["HIGH"] and
-            df["HIGH"] > df.shift(-1)["HIGH"] and
-            df.shift(-1)["CANDLE_COLOR"] == "red"
+        df["HIGH"] > df["HIGH_PREV"],
+        np.where(
+            df["HIGH"] > df["HIGH_NEXT"],
+            1,
+            0
+        ),
+        np.where(
+            df["HIGH"] == df["HIGH_PREV"],
+            np.where(
+                df["HIGH"] > df["HIGH_NEXT"],
+                np.where(
+                    df["CANDLE_COLOR_NEXT"] == "red",
+                    1,
+                    0
+                ),
+                0
+            ),
+            0,
         )
+    )
+
+    df["IS_FRACTAL_DOWN"] = np.where(
+        df["LOW"] < df["LOW_PREV"],
+        np.where(
+            df["LOW"] < df["LOW_NEXT"],
+            1,
+            0
+        ),
+        np.where(
+            df["LOW"] == df["LOW_PREV"],
+            np.where(
+                df["LOW"] < df["LOW_NEXT"],
+                np.where(
+                    df["CANDLE_COLOR_NEXT"] == "green",
+                    1,
+                    0
+                ),
+                0
+            ),
+            0,
+        ),
+    )
+
+    df.drop(
+        [
+            "LOW_PREV",
+            "LOW_NEXT",
+            "HIGH_PREV",
+            "HIGH_NEXT",
+            "CANDLE_COLOR_PREV",
+            "CANDLE_COLOR_NEXT"
+        ],
+        axis=1,
+        inplace=True
     )
     return df
 
@@ -145,32 +183,12 @@ def calc_end_correction(df: pd.DataFrame) -> pd.DataFrame:
         df["HIGH"] - df["CLOSE"],
         df["CLOSE"] - df["LOW"]
     )
-    df["END_CORRECTION_PERC"] = (df["END_CORRECTION"] /
-                                 math.abs(df["CLOSE"] - df["OPEN"]))
+    df["END_CORRECTION_PERC"] = np.round(
+        np.where(
+            df["CLOSE"] != df["OPEN"],
+            df["END_CORRECTION"] / np.abs(df["CLOSE"] - df["OPEN"]),
+            999999
+        ),
+        5
+    )
     return df
-    '''
-    len_df = df.shape[0]
-    end_corr, end_corr_perc = [0] * len_df, [0] * len_df
-    for i in range(0, len_df):
-        k = 0
-        while k <= i:
-            corr = df['CLOSE'][i-k] - df['OPEN'][i-k]
-            if corr > 0:
-                end_corr[i] = df['HIGH'][i] - df['CLOSE'][i]
-                end_corr_perc[i] = (
-                    end_corr[i] / (df['CLOSE'][i] - df['OPEN'][i])
-                ) if df['OPEN'][i] != df['CLOSE'][i] else 0
-                break
-            elif corr < 0:
-                end_corr[i] = df['CLOSE'][i] - df['LOW'][i]
-                end_corr_perc[i] = (
-                    end_corr[i] / (df['OPEN'][i] - df['CLOSE'][i])
-                ) if df['OPEN'][i] != df['CLOSE'][i] else 0
-                break
-            else:
-                k += 1
-
-    df['END_CORRECTION'] = end_corr
-    df['END_CORRECTION_PERC'] = end_corr_perc
-    return df
-    '''
