@@ -3,7 +3,8 @@ from main.functions import (
     calc_candle_color,
     add_pivot,
     add_fractals,
-    calc_end_correction
+    calc_end_correction,
+    calc_active_impulse
 )
 
 # создание тестового датасета
@@ -122,3 +123,36 @@ def test_calc_end_correction():
             f"Incorrect end correction percent (string {i}." \
             f"Expected {df.END_CORRECTION_PERC[i]}." \
             f"Expected {end_corrs_perc[i]})"
+
+
+def test_calc_active_impulse():
+    '''
+    Тест расчета активных импульсов.
+    '''
+
+    df = [
+        [10, 15, 8, 12, 100, "2023-01-01 12:00:00", 3, 1.5],
+        [12, 20, 11, 19, 120, "2023-01-01 12:05:00", 1, 0.14286],
+        [19, 20, 17, 18, 110, "2023-01-01 12:10:00", 1, 1],
+        [18, 20, 12, 12, 150, "2023-01-01 12:15:00", 0, 0.0]
+    ]
+    df = pd.DataFrame(
+        df, columns=[
+            "OPEN",
+            "HIGH",
+            "LOW",
+            "CLOSE",
+            "VOL",
+            "DATETIME",
+            "END_CORRECTION",
+            "END_CORRECTION_PERC"
+        ])
+
+    df = calc_active_impulse(df)
+
+    assert df["UPGOING_ACTIVE_IMPULSE"][1] == 1, \
+        "Upgoing active impulse (string 1) is 0, expected 1."
+    assert df["UPGOING_ACTIVE_IMPULSE"][2] == 0, \
+        "Upgoing active impulse (string 2) is 1, expected 0."
+    assert df["DOWNGOING_ACTIVE_IMPULSE"][3] == 1, \
+        "Downgoing active impulse (string 3) is 0, expected 1."

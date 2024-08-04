@@ -192,3 +192,112 @@ def calc_end_correction(df: pd.DataFrame) -> pd.DataFrame:
         5
     )
     return df
+
+
+def calc_active_impulse(df: pd.DataFrame) -> pd.DataFrame:
+    '''
+    Функция рассчитывает параметры активного импульса.
+    Восходящий активный импульс:
+        - Candle[1] Open >= Candle[0] Open
+        - Candle[1] Close >= Candle[0] Close
+        - Candle[1] Close > Candle[1] Open
+        - Candle[1] Body (Close - Open) >= Candle[0] Body]
+    Нисходящий активный импульс:
+        - Candle[1] Open <= Candle[0] Open
+        - Candle[1] Close < Candle[0] Close
+        - Candle[1] Close < Candle[1] Open
+        - Candle[1] Body (Open - Close) >= Candle[0] Body
+    Общие условия для обоих направлений:
+        - Candle[1] End Correction Percent < Candle[0] End Correction Percent
+        - Candle[1] End Correction <= Candle[1] Body * 0.2
+        - Candle[1] Body >= Candle[1] Amplitude * 0.7
+    '''
+
+    df["OPEN_PREV"] = df.shift()["OPEN"]
+    df["CLOSE_PREV"] = df.shift()["CLOSE"]
+    df["END_CORR_PREV"] = df.shift()["END_CORRECTION"]
+    df["END_CORR_PERC_PREV"] = df.shift()["END_CORRECTION_PERC"]
+
+    df["ACTIVE_IMPULSE_COMMON"] = np.where(
+        (df["END_CORRECTION_PERC"] < df["END_CORR_PERC_PREV"]),
+        np.where(
+            df["END_CORRECTION"] <= np.abs(df["CLOSE"] - df["OPEN"]) * 0.2,
+            np.where(
+                np.abs(df["CLOSE"] - df["OPEN"]) >=
+                (df["HIGH"] - df["LOW"]) * 0.7,
+                1,
+                0
+            ),
+            0
+        ),
+        0
+    )
+
+    df["UPGOING_ACTIVE_IMPULSE"] = np.where(
+        df["OPEN"] >= df["OPEN_PREV"],
+        np.where(
+            df["CLOSE"] >= df["CLOSE_PREV"],
+            np.where(
+                df["CLOSE"] > df["OPEN"],
+                np.where(
+                    (df["CLOSE"] - df["OPEN"]) >
+                    (df["CLOSE_PREV"] - df["OPEN_PREV"]),
+                    np.where(
+                        df["ACTIVE_IMPULSE_COMMON"] == 1,
+                        1,
+                        0
+                    ),
+                    0
+                ),
+                0
+            ),
+            0
+        ),
+        0
+    )
+
+    df["DOWNGOING_ACTIVE_IMPULSE"] = np.where(
+        df["OPEN"] <= df["OPEN_PREV"],
+        np.where(
+            df["CLOSE"] < df["OPEN"],
+            np.where(
+                (df["OPEN"] - df["CLOSE"]) >
+                (df["OPEN_PREV"] - df["CLOSE_PREV"]),
+                np.where(
+                    df["ACTIVE_IMPULSE_COMMON"] == 1,
+                    1,
+                    0
+                ),
+                0
+            ),
+            0
+        ),
+        0
+    )
+
+    df.drop(
+        [
+            "OPEN_PREV",
+            "CLOSE_PREV",
+            "END_CORR_PREV",
+            "END_CORR_PERC_PREV",
+        ],
+        axis=1,
+        inplace=True)
+    return df
+
+
+def calc_superactive_impulse(df: pd.DataFrame) -> pd.DataFrame:
+    '''
+    Функция считает сверхактивные импульсы (соотношение тел свечей > 3.5).
+    '''
+
+    df["OPEN_PREV"] = df.shift()["OPEN"]
+    df["CLOSE_PREV"] = df.shift()["CLOSE"]
+    df["IS_SUPERACTIVE_IMPULSE"] = np.where(
+        np.abs(df["CLOSE"] - df["OPEN"]) /
+        np.abs(df["CLOSE_PREV"] - df["OPEN_PREV"]) > 3.5
+    )
+
+    df.drop(["OPEN_PREV", "CLOSE_PREV"], axis=1, inplace=True)
+    return df
