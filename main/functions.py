@@ -295,8 +295,12 @@ def calc_superactive_impulse(df: pd.DataFrame) -> pd.DataFrame:
     df["OPEN_PREV"] = df.shift()["OPEN"]
     df["CLOSE_PREV"] = df.shift()["CLOSE"]
     df["IS_SUPERACTIVE_IMPULSE"] = np.where(
-        np.abs(df["CLOSE"] - df["OPEN"]) /
-        np.abs(df["CLOSE_PREV"] - df["OPEN_PREV"]) > 3.5
+        (
+            np.abs(df["CLOSE"] - df["OPEN"]) /
+            np.abs(df["CLOSE_PREV"] - df["OPEN_PREV"])
+        ) > 3.5,
+        1,
+        0
     )
 
     df.drop(["OPEN_PREV", "CLOSE_PREV"], axis=1, inplace=True)

@@ -4,7 +4,8 @@ from main.functions import (
     add_pivot,
     add_fractals,
     calc_end_correction,
-    calc_active_impulse
+    calc_active_impulse,
+    calc_superactive_impulse
 )
 
 # создание тестового датасета
@@ -156,3 +157,22 @@ def test_calc_active_impulse():
         "Upgoing active impulse (string 2) is 1, expected 0."
     assert df["DOWNGOING_ACTIVE_IMPULSE"][3] == 1, \
         "Downgoing active impulse (string 3) is 0, expected 1."
+
+
+def test_calc_superactive_impulse():
+    df = [
+        [10, 15, 9, 14],
+        [14, 30, 12, 30],
+        [30, 31, 26, 28],
+        [28, 29, 10, 15]
+    ]
+    df = pd.DataFrame(df, columns=["OPEN", "HIGH", "LOW", "CLOSE"])
+
+    df = calc_superactive_impulse(df)
+
+    assert df["IS_SUPERACTIVE_IMPULSE"][1] == 1, \
+        "Superactive impulse is 0 (string 1), expected 1."
+    assert df["IS_SUPERACTIVE_IMPULSE"][2] == 0, \
+        "Superactive impulse is 1 (string 2), expected 0."
+    assert df["IS_SUPERACTIVE_IMPULSE"][3] == 1, \
+        "Superactive impulse is 0 (string 3), expected 1."
