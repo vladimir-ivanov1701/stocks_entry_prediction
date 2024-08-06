@@ -1,7 +1,9 @@
-from .constants import MSAD_PERIODS
-import pandas as pd
 import re
+
 import numpy as np
+import pandas as pd
+
+from .constants import MAX_SHIFT, MSAD_PERIODS, PIPS_COSTS, SL_RUB, TP_RUB
 
 
 def prepare_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -76,11 +78,11 @@ def add_movings(df: pd.DataFrame) -> pd.DataFrame:
     Скользящие средние считаются по среднему и стандартному отклонению.
     '''
 
+    col_list = df.drop(["DATETIME", "CANDLE_COLOR"], axis=1).columns
     for per in MSAD_PERIODS:
-        df[f'MSAD_{per}_mean'] = df['PIVOT'].rolling(per).mean()
-        df[f'MSAD_{per}_std'] = df['PIVOT'].rolling(per).std()
-        df[f'VOL_MA_{per}_mean'] = df['VOL'].rolling(per).mean()
-        df[f'VOL_MA_{per}_std'] = df['VOL'].rolling(per).std()
+        for col in col_list:
+            df[f"{col}_MA_mean"] = df[col].rolling(per).mean()
+            df[f"{col}_MA_std"] = df[col].rolling(per).std()
 
     return df
 
@@ -240,7 +242,7 @@ def calc_active_impulse(df: pd.DataFrame) -> pd.DataFrame:
             np.where(
                 df["CLOSE"] > df["OPEN"],
                 np.where(
-                    (df["CLOSE"] - df["OPEN"]) >
+                    (df["CLOSE"] - df["OPEN"]) >=
                     (df["CLOSE_PREV"] - df["OPEN_PREV"]),
                     np.where(
                         df["ACTIVE_IMPULSE_COMMON"] == 1,
@@ -261,7 +263,7 @@ def calc_active_impulse(df: pd.DataFrame) -> pd.DataFrame:
         np.where(
             df["CLOSE"] < df["OPEN"],
             np.where(
-                (df["OPEN"] - df["CLOSE"]) >
+                (df["OPEN"] - df["CLOSE"]) >=
                 (df["OPEN_PREV"] - df["CLOSE_PREV"]),
                 np.where(
                     df["ACTIVE_IMPULSE_COMMON"] == 1,
@@ -281,6 +283,7 @@ def calc_active_impulse(df: pd.DataFrame) -> pd.DataFrame:
             "CLOSE_PREV",
             "END_CORR_PREV",
             "END_CORR_PERC_PREV",
+            "ACTIVE_IMPULSE_COMMON"
         ],
         axis=1,
         inplace=True)
@@ -299,9 +302,61 @@ def calc_superactive_impulse(df: pd.DataFrame) -> pd.DataFrame:
             np.abs(df["CLOSE"] - df["OPEN"]) /
             np.abs(df["CLOSE_PREV"] - df["OPEN_PREV"])
         ) > 3.5,
-        1,
+        np.where(
+            df["UPGOING_ACTIVE_IMPULSE"] == 1,
+            1,
+            np.where(
+                df["DOWNGOING_ACTIVE_IMPULSE"] == 1,
+                1,
+                0
+            ),
+        ),
         0
     )
 
     df.drop(["OPEN_PREV", "CLOSE_PREV"], axis=1, inplace=True)
     return df
+
+
+def calc_shift(df: pd.DataFrame) -> pd.DataFrame:
+
+    col_list = df.drop(["DATETIME", "CANDLE_COLOR"], axis=1).columns
+
+    for i in range(MAX_SHIFT):
+        for col in col_list:
+            df[f"{col}_SHIFT_{i}"] = df[col].shift(i)
+
+    return df
+
+
+def calc_features(df: pd.DataFrame) -> pd.DataFrame:
+    '''
+    Расчет всех фич датасета.
+    '''
+    df = calc_candle_color(df)
+    df = add_pivot(df)
+    df = add_fractals(df)
+    df = calc_end_correction(df)
+    df = calc_active_impulse(df)
+    df = calc_superactive_impulse(df)
+    df = add_movings(df)
+
+    return df
+
+
+def calc_sl_tp(
+        futures_name: str,
+        sl_rub: int = SL_RUB,
+        tp_rub: int = TP_RUB
+        ) -> float:
+    '''
+    Расчёт стоп-лосса в пунктах
+    '''
+
+    price_step = PIPS_COSTS[futures_name]["PRICE_STEP"]
+    price_step_cost = PIPS_COSTS[futures_name]["PRICE_STEP_COST"]
+
+    sl_pips = np.round(sl_rub * price_step / price_step_cost, 4)
+    tp_pips = np.round(tp_rub * price_step / price_step_cost, 4)
+
+    return sl_pips, tp_pips

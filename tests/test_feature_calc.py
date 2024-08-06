@@ -1,12 +1,9 @@
 import pandas as pd
-from main.functions import (
-    calc_candle_color,
-    add_pivot,
-    add_fractals,
-    calc_end_correction,
-    calc_active_impulse,
-    calc_superactive_impulse
-)
+
+from main.functions import (add_fractals, add_pivot, calc_active_impulse,
+                            calc_candle_color, calc_end_correction,
+                            calc_superactive_impulse,
+                            calc_sl_tp)
 
 # создание тестового датасета
 test_df = [
@@ -161,12 +158,20 @@ def test_calc_active_impulse():
 
 def test_calc_superactive_impulse():
     df = [
-        [10, 15, 9, 14],
-        [14, 30, 12, 30],
-        [30, 31, 26, 28],
-        [28, 29, 10, 15]
+        [10, 15, 9, 14, 0, 0],
+        [14, 30, 12, 30, 1, 0],
+        [30, 31, 26, 28, 0, 0],
+        [28, 29, 10, 15, 0, 1]
     ]
-    df = pd.DataFrame(df, columns=["OPEN", "HIGH", "LOW", "CLOSE"])
+    df = pd.DataFrame(df, columns=[
+        "OPEN",
+        "HIGH",
+        "LOW",
+        "CLOSE",
+        "UPGOING_ACTIVE_IMPULSE",
+        "DOWNGOING_ACTIVE_IMPULSE"
+        ]
+    )
 
     df = calc_superactive_impulse(df)
 
@@ -176,3 +181,12 @@ def test_calc_superactive_impulse():
         "Superactive impulse is 1 (string 2), expected 0."
     assert df["IS_SUPERACTIVE_IMPULSE"][3] == 1, \
         "Superactive impulse is 0 (string 3), expected 1."
+
+
+def test_calc_sl_tp():
+    sl, tp = calc_sl_tp("ED", sl_rub=100, tp_rub=200)
+
+    assert sl == 0.0012, \
+        f"SL is {sl}, expected 0.0012."
+    assert tp == 0.0023, \
+        f"TP is {tp}, expected 0.0023"
