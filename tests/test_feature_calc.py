@@ -3,7 +3,7 @@ import pandas as pd
 from main.functions import (add_fractals, add_pivot, calc_active_impulse,
                             calc_candle_color, calc_end_correction,
                             calc_superactive_impulse,
-                            calc_sl_tp)
+                            calc_sl_tp, calc_targets)
 
 # создание тестового датасета
 test_df = [
@@ -190,3 +190,33 @@ def test_calc_sl_tp():
         f"SL is {sl}, expected 0.0012."
     assert tp == 0.0023, \
         f"TP is {tp}, expected 0.0023"
+
+
+def test_calc_targets():
+    futures_name = "Si"
+    sl_rub = 100
+    tp_rub = 200
+
+    df = [
+        [80000, 80100, 79965, 80050],
+        [80050, 80100, 79600, 80050],
+        [80050, 81000, 79000, 80050],
+        [80050, 80260, 79999, 80250]
+    ]
+
+    df = pd.DataFrame(df, columns=["OPEN", "HIGH", "LOW", "CLOSE"])
+
+    df = calc_targets(futures_name, sl_rub, tp_rub, df)
+
+    assert df["TARGET_LONG"][0] == 0, \
+        "Target Long (string 0) is 1, expected 0."
+    assert df["TARGET_SHORT"][0] == 1, \
+        "Target Short (string 0) is 0, expected 1."
+    assert df["TARGET_LONG"][1] == 0, \
+        "Target Long (string 1) is 1, expected 0."
+    assert df["TARGET_SHORT"][1] == 0, \
+        "Target Short (string 1) is 1, expected 0."
+    assert df["TARGET_LONG"][2] == 1, \
+        "Target Long (string 2) is 1, expected 0."
+    assert df["TARGET_SHORT"][2] == 0, \
+        "Target Short (string 2) is 1, expected 0."

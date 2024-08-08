@@ -329,21 +329,6 @@ def calc_shift(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def calc_features(df: pd.DataFrame) -> pd.DataFrame:
-    '''
-    Расчет всех фич датасета.
-    '''
-    df = calc_candle_color(df)
-    df = add_pivot(df)
-    df = add_fractals(df)
-    df = calc_end_correction(df)
-    df = calc_active_impulse(df)
-    df = calc_superactive_impulse(df)
-    df = add_movings(df)
-
-    return df
-
-
 def calc_sl_tp(
         futures_name: str,
         sl_rub: int = SL_RUB,
@@ -360,3 +345,82 @@ def calc_sl_tp(
     tp_pips = np.round(tp_rub * price_step / price_step_cost, 4)
 
     return sl_pips, tp_pips
+
+
+def calc_targets(
+    df: pd.DataFrame,
+    futures_name: str,
+    sl_rub: int = SL_RUB,
+    tp_rub: int = TP_RUB
+) -> pd.DataFrame:
+    '''
+    Расчет таргета.
+    '''
+
+    sl_pips, tp_pips = calc_sl_tp(futures_name, sl_rub, tp_rub)
+
+    res_long, res_short = [0] * df.shape[0], [0] * df.shape[0]
+
+    for i in range(df.shape[0] - 1):
+        entry_price = df["CLOSE"][i]
+        sl_price_long = entry_price - sl_pips
+        tp_price_long = entry_price + tp_pips
+        sl_price_short = entry_price + sl_pips
+        tp_price_short = entry_price - tp_pips
+
+        # calc target for long
+        k = i + 1
+        while k < df.shape[0]:
+            low_price = df["LOW"][k]
+            high_price = df["HIGH"][k]
+
+            if low_price <= sl_price_long:
+                res_long[i] = 0
+                break
+            elif high_price >= tp_price_long:
+                res_long[i] = 1
+                break
+            else:
+                k += 1
+
+        # calc target for short
+        k = i + 1
+        while k < df.shape[0]:
+            low_price = df["LOW"][k]
+            high_price = df["HIGH"][k]
+
+            if high_price >= sl_price_short:
+                res_short[i] = 0
+                break
+            elif low_price <= tp_price_short:
+                res_short[i] = 1
+                break
+            else:
+                k += 1
+
+    df["TARGET_LONG"] = res_long
+    df["TARGET_SHORT"] = res_short
+
+    return df
+
+
+def calc_features(
+    df: pd.DataFrame,
+    futures_name: str,
+    sl_rub: int = SL_RUB,
+    tp_rub: int = TP_RUB
+) -> pd.DataFrame:
+    '''
+    Расчет всех фич датасета.
+    '''
+
+    df = calc_candle_color(df)
+    df = add_pivot(df)
+    df = add_fractals(df)
+    df = calc_end_correction(df)
+    df = calc_active_impulse(df)
+    df = calc_superactive_impulse(df)
+    df = add_movings(df)
+    df = calc_targets(df, futures_name, sl_rub, tp_rub)
+
+    return df
