@@ -2,9 +2,15 @@
 DATA_PATH = "src/stock_data.xlsx"
 FUTURES_NAME = "Si"
 
+# параметры логирования
+LOG_FORMAT = "%(name)s %(asctime)s %(levelname)s %(message)s"
+
 # параметры расчёта фичей
 MAX_SHIFT = 8
 MSAD_PERIODS = [3, 5, 10, 25, 50]
+
+# параметры построения модели
+TEST_SIZE = 0.3
 
 # стоп лосс и тейк профит
 SL_RUB = 200

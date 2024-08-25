@@ -3,7 +3,7 @@ import re
 import numpy as np
 import pandas as pd
 
-from .constants import MAX_SHIFT, MSAD_PERIODS, PIPS_COSTS, SL_RUB, TP_RUB
+from main.constants import MAX_SHIFT, MSAD_PERIODS, PIPS_COSTS, SL_RUB, TP_RUB
 
 
 def prepare_columns(df: pd.DataFrame) -> pd.DataFrame:
