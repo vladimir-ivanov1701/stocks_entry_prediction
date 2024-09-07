@@ -8,6 +8,7 @@ LOG_FORMAT = "%(name)s %(asctime)s %(levelname)s %(message)s"
 # параметры расчёта фичей
 MAX_SHIFT = 8
 MSAD_PERIODS = [3, 5, 10, 25, 50]
+N_BINS = 10
 
 # параметры построения модели
 TEST_SIZE = 0.3

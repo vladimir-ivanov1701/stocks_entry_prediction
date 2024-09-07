@@ -5,7 +5,7 @@ import warnings
 import random as rnd
 from typing import List
 from sklearn.model_selection import train_test_split
-from main.logger import MyLogger
+from main.logging import MyLogger
 
 from constants import TEST_SIZE
 warnings.filterwarnings('ignore')
@@ -141,7 +141,7 @@ class TrainTestSplitter():
         size_of_test: float = TEST_SIZE,
         drop_technical: bool = False,
         random_state: int = 0
-    ):
+    ) -> pd.DataFrame:
         """
         Стратифицированно бьет данные на трейн и тест
         в разрезе уникальных идентификаторов.
@@ -236,7 +236,7 @@ class TrainTestSplitter():
         ini_data,
         stata_df,
         target_column
-    ):
+    ) -> pd.DataFrame:
         ttls = len(df)
         defs = sum(df[target_column].values)
         defrate = defs/ttls
