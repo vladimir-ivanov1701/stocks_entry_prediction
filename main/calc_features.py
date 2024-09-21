@@ -2,6 +2,7 @@ import re
 
 import numpy as np
 import pandas as pd
+from typing import List
 
 from main.constants import MAX_SHIFT, MSAD_PERIODS, PIPS_COSTS, SL_RUB, TP_RUB
 
@@ -18,18 +19,6 @@ def prepare_columns(df: pd.DataFrame) -> pd.DataFrame:
         df["DATE"].astype(str) + ' ' + df["TIME"].astype(str)
     )
 
-    df.drop(
-        [
-            "DATE",
-            "TIME",
-            "DATETIME_KEY",
-            "TICKER",
-            "PER"
-        ],
-        axis=1,
-        inplace=True
-    )
-
     for col in [
         "OPEN",
         "CLOSE",
@@ -39,6 +28,31 @@ def prepare_columns(df: pd.DataFrame) -> pd.DataFrame:
     ]:
         df[col] = df[col].astype('float32')
 
+    return df
+
+
+def drop_cols(df: pd.DataFrame, cols: List) -> pd.DataFrame:
+    '''
+    Функция удаляет заданные колонки из датафрейма.
+    '''
+
+    df.drop(
+        cols,
+        axis=1,
+        inplace=True
+    )
+    return df
+
+
+def calc_datetime_features(df: pd.DataFrame) -> pd.DataFrame:
+    '''
+    Функция рассчитывает фичи по дате и времени
+    '''
+
+    df["DATE"] = pd.to_datetime(df["DATE"], format="%Y-%m-%d")
+    df["TIME"] = pd.to_datetime(df["TIME"], format="%H:%M:%S")
+    df["WEEK_DAY"] = df["DATE"].dt.weekday
+    df["HOUR"] = df["TIME"].dt.hour
     return df
 
 
@@ -414,6 +428,15 @@ def calc_features(
     Расчет всех фич датасета.
     '''
 
+    df = prepare_columns(df)
+    df = calc_datetime_features(df)
+    df = drop_cols(df, cols=[
+        "DATE",
+        "TIME",
+        "DATETIME_KEY",
+        "TICKER",
+        "PER"
+    ])
     df = calc_candle_color(df)
     df = add_pivot(df)
     df = add_fractals(df)
