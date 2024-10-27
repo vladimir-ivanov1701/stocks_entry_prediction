@@ -9,8 +9,7 @@
         [x] размер стопа в рублях
         [x] размер тейка в рублях
         [x] размер позиции
-    [ ] Отрисовать таблицу настроек
-    [ ] Заполнить таблицу настроек
+    [X] Отрисовать таблицу настроек
     [ ] Проверить время
     [ ] Если время 10:00 и нет открытых позиций - открыть лонг/шорт по рынку
     [ ] Рассчитать стоп лосс и тейк профит
@@ -72,7 +71,7 @@ function logging(msg_type, message_text)
 end
 
 
-function get_curr_balance()
+function curr_balance()
 
     res = getItem('futures_client_limits', 0).cbplimit
     if res == nil then
@@ -80,6 +79,29 @@ function get_curr_balance()
         return 0
     end
     return res
+end
+
+function curr_position(account, futures_code)
+    --[[
+        Function for getting current nett position from futures table.
+        :param: account      - account ID
+        :param: futures_code - futures code from FUTURES_LIST[i][2]
+    ]]
+
+    local table_size = getNumberOf(POSITIONS_TABLE)
+    if table_size ~= nil then
+        for i = 0, table_size - 1 do
+            local row = getItem(POSITIONS_TABLE, i)
+            if (
+                row ~= nil and
+                row.sec_code == futures_code and
+                row.trdaccid == account
+            ) then
+                return row.totalnet
+            end
+        end
+    end
+    return 0
 end
 
 function calc_futures_data(futures_index)
@@ -93,33 +115,39 @@ function calc_futures_data(futures_index)
         :param: futures_index - futures number in FUTURES_LIST
     ]]
 
-    local futures_code = FUTURES_LIST[futures_index][2]
-    local price_graph_name = FUTURES_LIST[futures_index][4]
-    local atr_name = FUTURES_LIST[futures_index][5]
-    local stock_open_hour = FUTURES_LIST[futures_index][10]
-    local price_open = 0
-    local price_close = 0
-
     local dt = {}
     dt.hour, dt.min, dt.sec = string.match(getInfoParam('SERVERTIME'), '(%d*):(%d*):(%d*)')
-    local n_candles = getNumCandles(price_graph_name)
-    local price_step = tonumber(getParamEx(MOEX_CLASS, futures_code, 'SEC_PRICE_STEP').param_value)
-    local price_step_cost = tonumber(string.format('%.4f', getParamEx(MOEX_CLASS, futures_code, 'STEPPRICE').param_value))
+    local n_candles = getNumCandles(FUTURES_LIST[futures_index].d1_name)
+    local ps = price_step(FUTURES_LIST[futures_index].futures_code, MOEX_CLASS)
+    local psc = price_step_cost(FUTURES_LIST[futures_index].futures_code, MOEX_CLASS)
     local money_on_acc = get_curr_balance()
 
-    local candle_color = prev_candle_color(futures_index, price_graph_name, n_candles, dt.hour, stock_open_hour)
-    local sl_pips, tp_pips, sl_rub, tp_rub = sl_tp_size(atr_name, dt.hour, stock_open_hour, price_step, price_step_cost)
+    local candle_color = prev_candle_color(
+        futures_index,
+        FUTURES_LIST[futures_index].d1_name,
+        n_candles,
+        dt.hour,
+        FUTURES_LIST[futures_index].open_hour
+    )
+    local atr, sl_pips, tp_pips, sl_rub, tp_rub = sl_tp_size(
+        FUTURES_LIST[futures_index].atr_d1_name,
+        dt.hour,
+        FUTURES_LIST[futures_index].open_hour,
+        ps,
+        psc
+    )
 
     local pos = pos_size(money_on_acc, sl_rub)
 
     -- saving params to table
-    FUTURES_LIST[futures_index][7] = sl_pips
-    FUTURES_LIST[futures_index][8] = tp_pips
-    FUTURES_LIST[futures_index][9] = sl_rub
-    FUTURES_LIST[futures_index][10] = tp_rub
-    FUTURES_LIST[futures_index][11] = pos
-    FUTURES_LIST[futures_index][14] = price_step
-    FUTURES_LIST[futures_index][15] = price_step_cost
+    FUTURES_LIST[futures_index].atr_value = atr
+    FUTURES_LIST[futures_index].sl_pips = sl_pips
+    FUTURES_LIST[futures_index].tp_pips = tp_pips
+    FUTURES_LIST[futures_index].sl_rub = sl_rub
+    FUTURES_LIST[futures_index].tp_rub = tp_rub
+    FUTURES_LIST[futures_index].pos_size = pos
+    FUTURES_LIST[futures_index].price_step = ps
+    FUTURES_LIST[futures_index].price_step_cost = psc
 end
 
 function prev_candle_color(futures_index, price_graph_name, n_candles, curr_hour, stock_open_hour)
@@ -187,7 +215,7 @@ function sl_tp_size(atr_name, curr_hour, stock_open_hour, price_step, price_step
     sl_rub = sl_pips / price_step * price_step_cost
     tp_rub = tp_pips / price_step * price_step_cost
 
-    return sl_pips, tp_pips, sl_rub, tp_rub
+    return atr_value, sl_pips, tp_pips, sl_rub, tp_rub
 end
 
 function pos_size(balance, sl_rub)
@@ -202,30 +230,74 @@ function pos_size(balance, sl_rub)
     return pos
 end
 
+function price_step(futures_code, MOEX_CLASS)
+    --[[
+        Function return price step for certain instrument.
+        :param: futures_code - futures_code from FUTURES_LIST[i][2].
+        :param: MOEX_CLASS   - MOEX class constant.
+    ]]
 
+    local res = tonumber(getParamEx(MOEX_CLASS, futures_code, 'SEC_PRICE_STEP').param_value)
+    return res
+end
 
+function price_step_cost(futures_code, MOEX_CLASS)
+    --[[
+        Function return price step cost for instrument.
+        :param: futures_code - futures code from FUTURES_LIST[i][2].
+        :param: MOEX_CLASS   - MOEX class constant.
+    ]]
 
+    local res = tonumber(string.format('%.4f', getParamEx(MOEX_CLASS, futures_code, 'STEPPRICE').param_value))
+    return res
+end
 
+function lot_size(futures_code, MOEX_CLASS)
+    --[[
+        Function return lot size.
+        :param: futures_code - futures code from FUTURES_LIST[i][2].
+        :param: MOEX_CLASS   - MOEX class constant.
+    ]]
+
+    local res = tonumber(
+        getParamEx(
+        MOEX_CLASS,
+        futures_code,
+        'LOTSIZE'
+        ).param_image
+    )
+
+    if res == nil then
+        res = math.floor(
+            tonumber(
+                getParamEx(
+                    MOEX_CLASS,
+                    futures_code,
+                    'LOTSIZE'
+                ).param_value
+            ) * 1000
+        )
+    end
+    return res
+end
 
 function fill_params_table(table_id)
     --[[
         Function creates table with bot params.
+        :param: table_id - ID of table.
     ]]
 
     AddColumn(table_id, 1, 'INSTRUMENT', true, QTABLE_STRING_TYPE, 20)
     AddColumn(table_id, 2, 'PREV_DAILY_CANDLE', true, QTABLE_STRING_TYPE, 20)
     AddColumn(table_id, 3, 'POS. SIZE', true, QTABLE_INT64_TYPE, 20)
-    AddColumn(table_id, 4, 'PRICE STEP COST', true, QTABLE_DOUBLE_TYPE, 20)
-    AddColumn(table_id, 5, 'PRICE STEP', true, QTABLE_DOUBLE_TYPE, 20)
+    AddColumn(table_id, 4, 'PRICE STEP', true, QTABLE_DOUBLE_TYPE, 20)
+    AddColumn(table_id, 5, 'PRICE STEP COST', true, QTABLE_DOUBLE_TYPE, 20)
     AddColumn(table_id, 6, 'LOT SIZE', true, QTABLE_INT64_TYPE, 20)
     AddColumn(table_id, 7, 'DAILY ATR', true, QTABLE_DOUBLE_TYPE, 20)
-    AddColumn(table_id, 8, 'SL SIZE', true, QTABLE_DOUBLE_TYPE, 20)
-    AddColumn(table_id, 9, 'TP_SIZE', true, QTABLE_DOUBLE_TYPE, 20)
-    AddColumn(table_id, 10, 'STOP LOSS', true, QTABLE_DOUBLE_TYPE, 20)
-    AddColumn(table_id, 11, 'TAKE PROFIT', true, QTABLE_DOUBLE_TYPE, 20)
-    AddColumn(table_id, 12, 'MAX POS. SIZE', true, QTABLE_DOUBLE_TYPE, 20)
-    AddColumn(table_id, 13, 'DAYS BEFORE EXP.', true, QTABLE_DOUBLE_TYPE, 20)
-    AddColumn(table_id, 14, 'COMMENT', true, QTABLE_STRING_TYPE, 50)
+    AddColumn(table_id, 8, 'SL SIZE PIPS', true, QTABLE_DOUBLE_TYPE, 20)
+    AddColumn(table_id, 9, 'TP_SIZE PIPS', true, QTABLE_DOUBLE_TYPE, 20)
+    AddColumn(table_id, 10, 'SL SIZE RUB', true, QTABLE_DOUBLE_TYPE, 20)
+    AddColumn(table_id, 11, 'TP SIZE RUB', true, QTABLE_DOUBLE_TYPE, 20)
     CreateWindow(table_id)
 
     Clear(table_id)
@@ -240,95 +312,26 @@ function fill_params_table(table_id)
     end
 
     for i = 1, n_instruments do
-        local futures_name = tostring(FUTURES_LIST[i][1])
         local futures_code = tostring(FUTURES_LIST[i][2])
-        local atr_name = tostring(FUTURES_LIST[i][4])
-        local curr_pos = get_curr_position(futures_code, ACCOUNT)
-        local n_candles_atr = getNumCandles(atr_name)
-        local atr_table, _, _ = getCandlesByIndex(atr_name, 0, n_candles_atr - 1, 1)
-        local atr_value = tonumber(
-            string.format(
-                '%.4f',
-                atr_table[0].close
-            )
-        )
-        local max_by_n_candles = tostring(FUTURES_LIST[i][5])
-        local min_by_n_candles = tostring(FUTURES_LIST[i][6])
-        local days_before_exp = tonumber(days_before_expiration(i))
-        local price_step_cost = tonumber(
-            string.format(
-                '%.4f',
-                getParamEx(
-                    MOEX_CLASS,
-                    futures_code,
-                    'STEPPRICE'
-                ).param_value
-            )
-        )
-        local price_step = tonumber(
-            getParamEx(
-                MOEX_CLASS,
-                futures_code,
-                'SEC_PRICE_STEP'
-            ).param_value
-        )
-        local lot_size = tonumber(
-            getParamEx(
-                MOEX_CLASS,
-                futures_code,
-                'LOTSIZE'
-            ).param_image
-        )
-
-        if n_candles_atr == nil then
-            logging('ERROR', 'ATR unavailable. Please check graph ID and try again.')
-            return 0
-        end
-        if lot_size == nil then
-            lot_size = math.floor(
-                tonumber(
-                    getParamEx(
-                        MOEX_CLASS,
-                        futures_code,
-                        'LOTSIZE'
-                    ).param_value
-                ) * 1000
-            )
-        end
-
-        -- Max SL = daily ATR / 3
-        local max_stop_loss = math.floor(atr_value / price_step * price_step_cost / 3)
-        local deposit_amt = curr_balance()
-        local max_risk = deposit_amt * RISK_PERCENT
-        max_stop_loss = math.min(max_stop_loss, max_risk)
-        FUTURES_LIST[i][7] = max_stop_loss
-        
-        local max_position_size = math.floor(max_risk / max_stop_loss)
-        FUTURES_LIST[i][8] = max_position_size
-        FUTURES_LIST[i][9] = days_before_exp
-        local comment = NO_COMMENT
-        if max_position_size > 5 then
-            comment = 'Attention! Low SL, more then 5 lots available!'
-            logging('WARNING', futures_name..': '..comment)
-        elseif days_before_exp <= 1 then
-            comment = 'Futures expires in '..days_before_exp..' days, please update!'
-        end
+        local curr_pos = get_curr_position(ACCOUNT, futures_code)
+        local atr_value = FUTURES_LIST[i][7]
+        local pos_s = FUTURES_LIST[i][12] --position size
+        local ps = FUTURES_LIST[i][14] --price step
+        local psc = FUTURES_LIST[i][15] --price step cost
+        local ls = lot_size(futures_code, MOEX_CLASS)
 
         InsertRow(table_id, -1)
-        SetCell(table_id, i, 1, futures_name)
-        SetCell(table_id, i, 2, tostring(max_by_n_candles))
-        SetCell(table_id, i, 3, tostring(min_by_n_candles))
-        SetCell(table_id, i, 4, tostring(curr_pos))
-        SetCell(table_id, i, 5, tostring(price_step_cost))
-        SetCell(table_id, i, 6, tostring(price_step))
-        SetCell(table_id, i, 7, tostring(lot_size))
-        SetCell(table_id, i, 8, tostring(atr_value))
-        SetCell(table_id, i, 9, tostring(max_stop_loss))
-        SetCell(table_id, i, 10, tostring(max_position_size))
-        SetCell(table_id, i, 11, tostring(days_before_exp))
-        SetCell(table_id, i, 12, comment)
-
-        calc_indicators(i)
+        SetCell(table_id, i, 1, tostring(FUTURES_LIST[i].futures_name))
+        SetCell(table_id, i, 2, tostring(FUTURES_LIST[i].prev_candle_color))
+        SetCell(table_id, i, 3, tostring(FUTURES_LIST[i].pos_size))
+        SetCell(table_id, i, 4, tostring(FUTURES_LIST[i].price_step))
+        SetCell(table_id, i, 5, tostring(FUTURES_LIST[i].price_step_cost))
+        SetCell(table_id, i, 6, tostring(ls))
+        SetCell(table_id, i, 7, tostring(FUTURES_LIST[i].atr_value))
+        SetCell(table_id, i, 8, tostring(FUTURES_LIST[i].sl_pips))
+        SetCell(table_id, i, 9, tostring(FUTURES_LIST[i].tp_pips))
+        SetCell(table_id, i, 10, tostring(FUTURES_LIST[i].sl_rub))
+        SetCell(table_id, i, 11, tostring(FUTURES_LIST[i].tp_rub))
     end
 
     local n_rows, n_cols = GetTableSize(table_id)
