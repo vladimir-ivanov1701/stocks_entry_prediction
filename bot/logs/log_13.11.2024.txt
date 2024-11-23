@@ -1,0 +1,88 @@
+13.11.2024 20:52:43 DEBUG Function price_step. Price step: 1.0
+13.11.2024 20:52:43 DEBUG Function price_step_cost. Price step cost: 1.0
+13.11.2024 20:52:43 DEBUG 98519.0
+13.11.2024 20:52:43 DEBUG Function prev_candle_color. Open price: 97754.0 | Close price: 98519.0 | Candle color: green
+13.11.2024 20:52:43 DEBUG Function sl_tp_size. Atr value: 986.57267 | SL pips: 328.85755666667 | TP pips: 657.71511333333 | SL rub: 328.85755666667 | TP rub: 657.71511333333
+13.11.2024 20:52:43 DEBUG Function max_pos_size. Pos size: 2
+13.11.2024 20:52:43 INFO Instruments parameters saved.
+13.11.2024 20:52:43 DEBUG Function price_step. Price step: 1.0
+13.11.2024 20:52:43 DEBUG Function price_step_cost. Price step cost: 1.0
+13.11.2024 20:52:43 DEBUG 104195.0
+13.11.2024 20:52:43 DEBUG Function prev_candle_color. Open price: 103623.0 | Close price: 104195.0 | Candle color: green
+13.11.2024 20:52:43 DEBUG Function sl_tp_size. Atr value: 1198.733588 | SL pips: 399.57786266667 | TP pips: 799.15572533333 | SL rub: 399.57786266667 | TP rub: 799.15572533333
+13.11.2024 20:52:43 DEBUG Function max_pos_size. Pos size: 2
+13.11.2024 20:52:43 INFO Instruments parameters saved.
+13.11.2024 20:52:43 DEBUG Function lot_size. Lot size: 1000
+13.11.2024 20:52:43 DEBUG Function lot_size. Lot size: 1000
+13.11.2024 20:52:43 INFO Parameters table initialized.
+13.11.2024 20:52:43 INFO Robot launched!
+13.11.2024 20:52:43 DEBUG Function trading_signal | Current price: 98452.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:43 DEBUG Trading signal: no_signal
+13.11.2024 20:52:43 DEBUG Function trading_signal | Current price: 103729.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:43 DEBUG Trading signal: no_signal
+13.11.2024 20:52:44 DEBUG Function trading_signal | Current price: 98452.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:44 DEBUG Trading signal: no_signal
+13.11.2024 20:52:44 DEBUG Function trading_signal | Current price: 103729.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:44 DEBUG Trading signal: no_signal
+13.11.2024 20:52:45 DEBUG Function trading_signal | Current price: 98452.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:45 DEBUG Trading signal: no_signal
+13.11.2024 20:52:45 DEBUG Function trading_signal | Current price: 103729.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:45 DEBUG Trading signal: no_signal
+13.11.2024 20:52:46 DEBUG Function trading_signal | Current price: 98452.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:46 DEBUG Trading signal: no_signal
+13.11.2024 20:52:46 DEBUG Function trading_signal | Current price: 103729.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:46 DEBUG Trading signal: no_signal
+13.11.2024 20:52:47 DEBUG Function trading_signal | Current price: 98452.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:47 DEBUG Trading signal: no_signal
+13.11.2024 20:52:48 DEBUG Function trading_signal | Current price: 103729.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:48 DEBUG Trading signal: no_signal
+13.11.2024 20:52:49 DEBUG Function trading_signal | Current price: 98452.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:49 DEBUG Trading signal: no_signal
+13.11.2024 20:52:49 DEBUG Function trading_signal | Current price: 103729.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:49 DEBUG Trading signal: no_signal
+13.11.2024 20:52:49 DEBUG Function trading_signal | Current price: 98452.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:49 DEBUG Trading signal: no_signal
+13.11.2024 20:52:49 DEBUG Function trading_signal | Current price: 103729.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:49 DEBUG Trading signal: no_signal
+13.11.2024 20:52:51 DEBUG Function trading_signal | Current price: 98452.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:51 DEBUG Trading signal: no_signal
+13.11.2024 20:52:51 DEBUG Function trading_signal | Current price: 103729.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:51 DEBUG Trading signal: no_signal
+13.11.2024 20:52:51 DEBUG Function trading_signal | Current price: 98452.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:51 DEBUG Trading signal: no_signal
+13.11.2024 20:52:51 DEBUG Function trading_signal | Current price: 103729.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:51 DEBUG Trading signal: no_signal
+13.11.2024 20:52:53 DEBUG Function trading_signal | Current price: 98452.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:53 DEBUG Trading signal: no_signal
+13.11.2024 20:52:53 DEBUG Function trading_signal | Current price: 103729.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:53 DEBUG Trading signal: no_signal
+13.11.2024 20:52:54 DEBUG Function trading_signal | Current price: 98452.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:54 DEBUG Trading signal: no_signal
+13.11.2024 20:52:54 DEBUG Function trading_signal | Current price: 103729.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:54 DEBUG Trading signal: no_signal
+13.11.2024 20:52:54 DEBUG Function trading_signal | Current price: 98452.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:54 DEBUG Trading signal: no_signal
+13.11.2024 20:52:54 DEBUG Function trading_signal | Current price: 103729.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:54 DEBUG Trading signal: no_signal
+13.11.2024 20:52:56 DEBUG Function trading_signal | Current price: 98452.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:56 DEBUG Trading signal: no_signal
+13.11.2024 20:52:56 DEBUG Function trading_signal | Current price: 103729.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:56 DEBUG Trading signal: no_signal
+13.11.2024 20:52:57 DEBUG Function trading_signal | Current price: 98452.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:57 DEBUG Trading signal: no_signal
+13.11.2024 20:52:57 DEBUG Function trading_signal | Current price: 103729.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:57 DEBUG Trading signal: no_signal
+13.11.2024 20:52:57 DEBUG Function trading_signal | Current price: 98452.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:57 DEBUG Trading signal: no_signal
+13.11.2024 20:52:57 DEBUG Function trading_signal | Current price: 103729.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:57 DEBUG Trading signal: no_signal
+13.11.2024 20:52:59 DEBUG Function trading_signal | Current price: 98452.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:59 DEBUG Trading signal: no_signal
+13.11.2024 20:52:59 DEBUG Function trading_signal | Current price: 103729.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:59 DEBUG Trading signal: no_signal
+13.11.2024 20:52:59 DEBUG Function trading_signal | Current price: 98452.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:52:59 DEBUG Trading signal: no_signal
+13.11.2024 20:53:00 DEBUG Function trading_signal | Current price: 103729.0 | Current position: 0 | Hour: 20 | Minute: 52 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:53:00 DEBUG Trading signal: no_signal
+13.11.2024 20:53:00 DEBUG Function trading_signal | Current price: 98452.0 | Current position: 0 | Hour: 20 | Minute: 53 | Open hour: 20 | Open minute: 53 | Was open: 0
+13.11.2024 20:53:00 DEBUG Found condition for long or short

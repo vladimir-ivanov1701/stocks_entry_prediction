@@ -1,18 +1,27 @@
 -- constants used in script
 
+-- account settings
 ACCOUNT = '410GP12'
 CLIENT_CODE = '547983'
 DEPOSIT_AMT = 160000
 RISK_PERCENT = 0.01
 SLIP = 0
-REAL_TRADING = false
 
+-- testing and debugging
+REAL_TRADING = false
+DEBUG_MODE = true
+
+-- system parameters
 POSITIONS_TABLE = 'futures_client_holding'
 MOEX_CLASS = 'SPBFUT'
-
-OPEN_HOUR = 10
-
 WAIT_TIME = 1000
+
+-- trading signals
+OPEN_LONG = 'open long'
+OPEN_SHORT = 'open short'
+CLOSE_LONG = 'close long'
+CLOSE_SHORT = 'close short'
+NO_SIGNAL = 'no_signal'
 
 --[[
     FUTURES_LIST - main array with all stats by all futures used in trading.
@@ -36,29 +45,50 @@ WAIT_TIME = 1000
     [17] Had open deal this day
 ]]
 
-TEST = {
-    ["test1"] = "test"
-}
-
 FUTURES_LIST = {
     {
         ["atr_d1_name"] = 'Si_1D_ATR',
         ["atr_value"] = 0,
         ["close_hour"] = 23,
         ["d1_name"] = 'Si_1D',
-        ["futures_code"] = 'SiZ3',
-        ["futures_name"] = 'Si-12.23 [FORTS]',
+        ["entry_price"] = 0,
+        ["futures_code"] = 'SiZ4',
+        ["futures_name"] = 'Si-12.24 [FORTS]',
+        ["max_pos_size"] = 0,
         ["m5_name"] = 'Si_M5',
-        ["open_hour"] = 10,
-        ["pos_size"] = 0,
+        ["open_hour"] = 19,
+        ["open_minute"] = 29,
+        ["prev_candle_color"] = 'green',
+        ["price_step"] = 0,
+        ["price_step_cost"] = 0,
+        ["sl_pips"] = 0,
+        ["sl_rub"] = 0,
+        ["spread_size"] = 0,
+        ["tp_pips"] = 0,
+        ["tp_rub"] = 0,
+        ["was_open"] = 0
+    },
+    {
+        ["atr_d1_name"] = 'Eu_1D_ATR',
+        ["atr_value"] = 0,
+        ["close_hour"] = 23,
+        ["d1_name"] = 'Eu_1D',
+        ["entry_price"] = 0,
+        ["futures_code"] = 'EuZ4',
+        ["futures_name"] = 'Eu-12.24 [FORTS]',
+        ["max_pos_size"] = 0,
+        ["m5_name"] = 'Eu_M5',
+        ["open_hour"] = 20,
+        ["open_minute"] = 53,
         ["prev_candle_color"] = 'No color',
         ["price_step"] = 0,
         ["price_step_cost"] = 0,
         ["sl_pips"] = 0,
         ["sl_rub"] = 0,
+        ["spread_size"] = 0,
         ["tp_pips"] = 0,
         ["tp_rub"] = 0,
-        ["was_open"] = false
+        ["was_open"] = 0
     }
 }
 

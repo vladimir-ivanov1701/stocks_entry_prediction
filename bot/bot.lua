@@ -11,7 +11,12 @@ function OnInit()
     -- Actions done once before startup
 
     table_id = AllocTable()
-    -- добавить функцию с расчетом параметров
+    local n_instruments = #FUTURES_LIST
+
+    for i = 1, n_instruments do
+        calc_futures_data(i)
+    end
+
     fill_params_table(table_id)
     logging('INFO', 'Robot launched!')
 end

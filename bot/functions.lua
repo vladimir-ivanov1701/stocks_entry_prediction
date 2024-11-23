@@ -1,24 +1,5 @@
 -- functions for bot
 
---[[
-    Запуск бота
-    [ ] Посчитать показатели
-        [x] цвет предыдущей свечи
-        [x] размер стопа в пунктах
-        [x] размер тейка в пунктах
-        [x] размер стопа в рублях
-        [x] размер тейка в рублях
-        [x] размер позиции
-    [X] Отрисовать таблицу настроек
-    [ ] Проверить время
-    [ ] Если время 10:00 и нет открытых позиций - открыть лонг/шорт по рынку
-    [ ] Рассчитать стоп лосс и тейк профит
-    [ ] Записать стоп лосс и тейк профит в таблицу параметров
-    [ ] Отобразить стоп и тейк в таблице параметров
-    [ ] Если цена пробила стоп лосс или тейк профит - закрыть позицию по рынку
-    [ ] Если время 23:00 и позиция открыта - закрыть по рынку
-]]
-
 -- importing constants
 dofile(getScriptPath()..'\\constants.lua')
 
@@ -29,6 +10,8 @@ function robot_body()
     dt.hour, dt.min, dt.sec = string.match(getInfoParam('SERVERTIME'), '(%d*):(%d*):(%d*)')
 
     local server_time = getInfoParam('SERVERTIME')
+    local n_instruments = #FUTURES_LIST
+
     if server_time == nil or server_time == '' then
         logging('ERROR', 'Server time not received!')
     end
@@ -38,8 +21,16 @@ function robot_body()
     end
 
     for i = 1, n_instruments do
-        --здесь вызов функции со всей математикой
-        get_trading_signal(i)
+        -- getting trade signal
+        local ts = trading_signal(i, dt.hour, dt.min)
+        if ts ~= NO_SIGNAL then
+            if DEBUG_MODE == true then
+                local dbg_msg = 'Got trading signal '..tostring(ts)..' | futures index: '..tostring(i)
+                dbg_msg = dbg_msg..' | Time: '..tostring(dt.hour)..':'..tostring(dt.min)..':'..tostring(dt.sec)
+                logging('DEBUG', dbg_msg)
+            end
+            send_transaction(i, ts)
+        end
     end
 
     sleep(WAIT_TIME)
@@ -57,7 +48,7 @@ function logging(msg_type, message_text)
     local server_date = getInfoParam('TRADEDATE')
     local server_time = getInfoParam('SERVERTIME')
     local output_message = server_date..' '..server_time..' '..msg_type..' '..message_text..'\n'
-    local log_file_name = getScriptPath()..'\\logs\\log_'..tostring(server_date)..'_'..'txt'
+    local log_file_name = getScriptPath()..'\\logs\\log_'..tostring(server_date)..'.txt'
     local f = io.open(log_file_name, 'r+')
     if f == nil then
         f = io.open(log_file_name, 'w')
@@ -118,39 +109,45 @@ function calc_futures_data(futures_index)
     local dt = {}
     dt.hour, dt.min, dt.sec = string.match(getInfoParam('SERVERTIME'), '(%d*):(%d*):(%d*)')
     local n_candles = getNumCandles(FUTURES_LIST[futures_index].d1_name)
+    local n_candles_atr = getNumCandles(FUTURES_LIST[futures_index].atr_d1_name)
     local ps = price_step(FUTURES_LIST[futures_index].futures_code, MOEX_CLASS)
     local psc = price_step_cost(FUTURES_LIST[futures_index].futures_code, MOEX_CLASS)
-    local money_on_acc = get_curr_balance()
+    local money_on_acc = curr_balance()
 
     local candle_color = prev_candle_color(
         futures_index,
         FUTURES_LIST[futures_index].d1_name,
         n_candles,
-        dt.hour,
-        FUTURES_LIST[futures_index].open_hour
+        dt.hour
     )
     local atr, sl_pips, tp_pips, sl_rub, tp_rub = sl_tp_size(
         FUTURES_LIST[futures_index].atr_d1_name,
         dt.hour,
         FUTURES_LIST[futures_index].open_hour,
+        n_candles_atr,
         ps,
         psc
     )
 
-    local pos = pos_size(money_on_acc, sl_rub)
+    local max_pos = max_pos_size(money_on_acc, sl_rub)
+    if DEBUG_MODE == true then
+       logging('DEBUG', 'max position: '..tostring(max_pos)) 
+    end
 
     -- saving params to table
     FUTURES_LIST[futures_index].atr_value = atr
+    --FUTURES_LIST[futures_index].prev_candle_color = candle_color
     FUTURES_LIST[futures_index].sl_pips = sl_pips
     FUTURES_LIST[futures_index].tp_pips = tp_pips
     FUTURES_LIST[futures_index].sl_rub = sl_rub
     FUTURES_LIST[futures_index].tp_rub = tp_rub
-    FUTURES_LIST[futures_index].pos_size = pos
+    FUTURES_LIST[futures_index].max_pos_size = max_pos
     FUTURES_LIST[futures_index].price_step = ps
     FUTURES_LIST[futures_index].price_step_cost = psc
+    logging('INFO', 'Instruments parameters saved.')
 end
 
-function prev_candle_color(futures_index, price_graph_name, n_candles, curr_hour, stock_open_hour)
+function prev_candle_color(futures_index, price_graph_name, n_candles, curr_hour)
     --[[
         Function returns color of previous daily candle.
 
@@ -158,17 +155,21 @@ function prev_candle_color(futures_index, price_graph_name, n_candles, curr_hour
         :param: price_graph_name - name of 1D graph
         :param: n_candles        - total number of candles on graph from the very beginning
         :param: curr_hour        - current hour from getInfoParam('SERVERTIME') table
-        :param: stock_open_hour  - hour when trades start for exact futures
     ]]
     
     local price_table, _, _ = getCandlesByIndex(
         price_graph_name,
         0,
-        n_candles - 1,
-        n_candles
+        n_candles - 2,
+        2
     )
+    logging('DEBUG', tostring(price_table[0].close))
 
-    if curr_hour < stock_open_hour then
+    local price_open = 0
+    local price_close = 0
+    local candle_color = 'no color'
+
+    if tonumber(curr_hour) < FUTURES_LIST[futures_index].open_hour then
         price_open = price_table[1].open
         price_close = price_table[1].close
     else
@@ -181,44 +182,73 @@ function prev_candle_color(futures_index, price_graph_name, n_candles, curr_hour
     elseif price_close < price_open then
         candle_color = "red"
     end
+
+    if DEBUG_MODE == true then
+        local msg = 'Function prev_candle_color. Open price: '..tostring(price_open)
+        msg = msg..' | Close price: '..tostring(price_close)
+        msg = msg..' | Candle color: '..tostring(candle_color)
+        logging('DEBUG', msg)
+    end
+
     return candle_color
 end
 
-function sl_tp_size(atr_name, curr_hour, stock_open_hour, price_step, price_step_cost)
+function sl_tp_size(atr_name, curr_hour, stock_open_hour, n_candles_atr, price_step, price_step_cost)
     --[[
         Function calculates SL and TP size in rubles.
 
         :param: atr_name        - name of 1D ATR graph
         :param: curr_hour       - current hour from getInfoParam('SERVERTIME') table
         :param: stock_open_hour - hour when trades start for exact futures
+        :param: n_candles - number of candles on graph
         :param: price_step      - price step for exact futures
         :param: price_step_cost - price step cost
     ]]
 
     local atr_value = 0
+    local sl_pips = 0
+    local tp_pips = 0
+    local sl_rub = 0
+    local tp_rub = 0
+
     local atr_table, _, _ = getCandlesByIndex(
         atr_name,
         0,
-        n_candles - 1,
-        n_candles
+        n_candles_atr - 2,
+        2
     )
 
-    if curr_hour < stock_open_hour then
-        atr_value = atr_table[1]
+    if tonumber(curr_hour) < stock_open_hour then
+        atr_value = tonumber(string.format(
+            '%.6f',    
+            atr_table[1].close)
+        )
     else
-        atr_value = atr_table[0]
+        atr_value = tonumber(string.format(
+            '%.6f',    
+            atr_table[0].close)
+        )
     end
 
-    sl_pips = atr_value / 3
-    tp_pips = atr_value * 2 / 3
+    sl_pips = tonumber(string.format('%6.f', atr_value / 3))
+    tp_pips = tonumber(string.format('%6.f', atr_value * 2 / 3))
 
     sl_rub = sl_pips / price_step * price_step_cost
     tp_rub = tp_pips / price_step * price_step_cost
 
+    if DEBUG_MODE == true then
+        local msg = 'Function sl_tp_size. Atr value: '..tostring(atr_value)
+        msg = msg..' | SL pips: '..tostring(sl_pips)
+        msg = msg..' | TP pips: '..tostring(tp_pips)
+        msg = msg..' | SL rub: '..tostring(sl_rub)
+        msg = msg..' | TP rub: '..tostring(tp_rub)
+        logging('DEBUG', msg)
+    end
+
     return atr_value, sl_pips, tp_pips, sl_rub, tp_rub
 end
 
-function pos_size(balance, sl_rub)
+function max_pos_size(balance, sl_rub)
     --[[
         Function calculates position size based on ATR value.
 
@@ -226,8 +256,13 @@ function pos_size(balance, sl_rub)
         :param: sl_rub  - stop loss in rubles
     ]]
 
-    pos = math.floor(balance * RISK_PERCENT / sl_rub)
-    return pos
+    max_pos = math.floor(balance / #FUTURES_LIST * RISK_PERCENT / sl_rub)
+
+    if DEBUG_MODE == true then
+        logging('DEBUG', 'Function max_pos_size. Pos size: '..tostring(max_pos))
+    end
+
+    return max_pos
 end
 
 function price_step(futures_code, MOEX_CLASS)
@@ -238,6 +273,11 @@ function price_step(futures_code, MOEX_CLASS)
     ]]
 
     local res = tonumber(getParamEx(MOEX_CLASS, futures_code, 'SEC_PRICE_STEP').param_value)
+
+    if DEBUG_MODE == true then
+        logging('DEBUG', 'Function price_step. Price step: '..tostring(res))
+    end
+
     return res
 end
 
@@ -248,7 +288,16 @@ function price_step_cost(futures_code, MOEX_CLASS)
         :param: MOEX_CLASS   - MOEX class constant.
     ]]
 
-    local res = tonumber(string.format('%.4f', getParamEx(MOEX_CLASS, futures_code, 'STEPPRICE').param_value))
+    local res = tonumber(string.format('%.4f', getParamEx(
+        MOEX_CLASS,
+        futures_code,
+        'STEPPRICE'
+    ).param_value))
+
+    if DEBUG_MODE == true then
+        logging('DEBUG', 'Function price_step_cost. Price step cost: '..tostring(res))
+    end
+
     return res
 end
 
@@ -275,9 +324,14 @@ function lot_size(futures_code, MOEX_CLASS)
                     futures_code,
                     'LOTSIZE'
                 ).param_value
-            ) * 1000
+            )
         )
     end
+
+    if DEBUG_MODE == true then
+        logging('DEBUG', 'Function lot_size. Lot size: '..tostring(res))
+    end
+
     return res
 end
 
@@ -295,7 +349,7 @@ function fill_params_table(table_id)
     AddColumn(table_id, 6, 'LOT SIZE', true, QTABLE_INT64_TYPE, 20)
     AddColumn(table_id, 7, 'DAILY ATR', true, QTABLE_DOUBLE_TYPE, 20)
     AddColumn(table_id, 8, 'SL SIZE PIPS', true, QTABLE_DOUBLE_TYPE, 20)
-    AddColumn(table_id, 9, 'TP_SIZE PIPS', true, QTABLE_DOUBLE_TYPE, 20)
+    AddColumn(table_id, 9, 'TP SIZE PIPS', true, QTABLE_DOUBLE_TYPE, 20)
     AddColumn(table_id, 10, 'SL SIZE RUB', true, QTABLE_DOUBLE_TYPE, 20)
     AddColumn(table_id, 11, 'TP SIZE RUB', true, QTABLE_DOUBLE_TYPE, 20)
     CreateWindow(table_id)
@@ -312,18 +366,13 @@ function fill_params_table(table_id)
     end
 
     for i = 1, n_instruments do
-        local futures_code = tostring(FUTURES_LIST[i][2])
-        local curr_pos = get_curr_position(ACCOUNT, futures_code)
-        local atr_value = FUTURES_LIST[i][7]
-        local pos_s = FUTURES_LIST[i][12] --position size
-        local ps = FUTURES_LIST[i][14] --price step
-        local psc = FUTURES_LIST[i][15] --price step cost
-        local ls = lot_size(futures_code, MOEX_CLASS)
+        local curr_pos = curr_position(ACCOUNT, FUTURES_LIST[i].futures_code)
+        local ls = lot_size(FUTURES_LIST[i].futures_code, MOEX_CLASS)
 
         InsertRow(table_id, -1)
         SetCell(table_id, i, 1, tostring(FUTURES_LIST[i].futures_name))
         SetCell(table_id, i, 2, tostring(FUTURES_LIST[i].prev_candle_color))
-        SetCell(table_id, i, 3, tostring(FUTURES_LIST[i].pos_size))
+        SetCell(table_id, i, 3, tostring(FUTURES_LIST[i].max_pos_size))
         SetCell(table_id, i, 4, tostring(FUTURES_LIST[i].price_step))
         SetCell(table_id, i, 5, tostring(FUTURES_LIST[i].price_step_cost))
         SetCell(table_id, i, 6, tostring(ls))
@@ -358,5 +407,165 @@ function fill_params_table(table_id)
             )
         end
     end
-    logging('INFO', 'Parameters table initialized')
+    logging('INFO', 'Parameters table initialized.')
+end
+
+function curr_price(futures_index)
+    --[[
+        Function returns last close price.
+        :param: futures_index - instrument position in FUTURES_LIST table.
+    ]]
+
+    local n_candles = getNumCandles(FUTURES_LIST[futures_index].d1_name)
+    local price_table, _, _ = getCandlesByIndex(
+        FUTURES_LIST[futures_index].d1_name,
+        0,
+        n_candles - 1,
+        n_candles
+    )
+    price_close = price_table[0].close
+    return price_close
+end
+
+function trading_signal(futures_index, hour, minute)
+    --[[
+        Function returns trading signals.
+        :param: futures_index - position of instrument in FUTURES_LIST table.concat
+        :param: hour          - hour
+        :param: minute        - minute
+    ]]
+
+    local trade_signal = NO_SIGNAL
+    local c_price = curr_price(futures_index)
+    local c_pos = curr_position(ACCOUNT, futures_index)
+
+    if DEBUG_MODE == true then
+        local dbg_msg = 'Function trading_signal | Current price: '..tostring(c_price)
+        dbg_msg = dbg_msg..' | Current position: '..tostring(c_pos)
+        dbg_msg = dbg_msg..' | Hour: '..tostring(hour)..' | Minute: '..tostring(minute)
+        dbg_msg = dbg_msg..' | Open hour: '..tostring(FUTURES_LIST[futures_index].open_hour)
+        dbg_msg = dbg_msg..' | Open minute: '..tostring(FUTURES_LIST[futures_index].open_minute)
+        dbg_msg = dbg_msg..' | Was open: '..tostring(FUTURES_LIST[futures_index].was_open)
+        logging('DEBUG', dbg_msg)
+    end
+
+    if (
+        (tonumber(hour) == FUTURES_LIST[futures_index].open_hour) and
+        (tonumber(minute) == FUTURES_LIST[futures_index].open_minute) and
+        (c_pos == 0) and
+        (FUTURES_LIST[futures_index].was_open == 0)
+    ) then
+        logging('DEBUG', 'Found condition for long or short')
+        logging('DEBUG', 'candle color: '..FUTURES_LIST[futures_index].prev_candle_color)
+        -- open long
+        if FUTURES_LIST[futures_index].prev_candle_color == "green" then
+            trade_signal = OPEN_LONG
+        -- open short
+        elseif FUTURES_LIST[futures_index].prev_candle_color == "red" then
+            trade_signal = OPEN_SHORT
+        end
+    elseif (
+        (tonumber(hour) >= FUTURES_LIST[futures_index].open_hour) and
+        (tonumber(hour) < FUTURES_LIST[futures_index].close_hour)
+    ) then
+        -- close long
+        if (
+            (c_pos > 0) and
+            (
+                (c_price >= (FUTURES_LIST[futures_index].entry_price + FUTURES_LIST[futures_index].tp_pips)) or
+                (c_price <= (FUTURES_LIST[futures_index].entry_price - FUTURES_LIST[futures_index].sl_pips))
+            )
+        ) then
+            trade_signal = CLOSE_LONG
+        -- close short
+        elseif (
+            (c_pos < 0) and
+            (
+                (c_price <= (FUTURES_LIST[futures_index].entry_price - FUTURES_LIST[futures_index].tp_pips)) or
+                (c_price >= (FUTURES_LIST[futures_index].entry_price + FUTURES_LIST[futures_index].sl_pips))
+            )
+        ) then
+            trade_signal = CLOSE_SHORT
+        end
+    -- close at close hour
+    elseif (
+        (tonumber(hour) == FUTURES_LIST[futures_index].close_hour) and
+        (tonumber(minute) == 0) and
+        (c_pos ~= 0)
+    ) then
+        if c_pos > 0 then
+            trade_signal = CLOSE_LONG
+        elseif c_pos < 0 then
+            trade_signal = CLOSE_SHORT
+        end
+    end
+    logging('DEBUG', 'Trading signal: '..trade_signal)
+    return trade_signal
+end
+
+function send_transaction(futures_index, ts_type)
+    --[[
+        Function sends transaction to the server.
+        :param: futures_index - futures position in FUTURES_LIST table
+        :param: ts_type - trading signal
+    ]]
+
+    local actual_price = 0
+    local c_pos = curr_position(ACCOUNT, futures_index)
+    local operation_type = ''
+    local volume = 0
+    local msg = ''
+
+    if ts_type == OPEN_LONG then
+        actual_price = math.floor(curr_price(futures_index) + FUTURES_LIST[futures_index].spread_size)
+        operation_type = 'B'
+        volume = FUTURES_LIST[futures_index].max_pos_size + math.abs(c_pos)
+    elseif ts_type == OPEN_SHORT then
+        actual_price = math.floor(curr_price(futures_index) - FUTURES_LIST[futures_index].spread_size)
+        operation_type = 'S'
+        volume = FUTURES_LIST[futures_index].max_pos_size + math.abs(c_pos)
+    elseif  ts_type == CLOSE_LONG then
+        actual_price = math.floor(curr_price(futures_index) + FUTURES_LIST[futures_index].spread_size)
+        operation_type = 'S'
+        volume = math.abs(c_pos)
+    elseif ts_type == CLOSE_SHORT then
+        actual_price = math.floor(curr_price(futures_index) - FUTURES_LIST[futures_index].spread_size)
+        operation_type = 'B'
+        volume = math.abs(c_pos)
+    end
+
+    -- transaction params table
+    transaction = {
+        ['ACCOUNT'] = ACCOUNT,
+        ['CLIENT_CODE'] = CLIENT_CODE,
+        ['TYPE'] = 'L',
+        ['TRANS_ID'] = '42',   -- no influence, just random number
+        ['CLASSCODE'] = MOEX_CLASS,
+        ['SECCODE'] = FUTURES_LIST[futures_index].futures_code,
+        ['ACTION'] = 'NEW_ORDER',
+        ['OPERATION'] = operation_type,   -- B - buy, S - sell
+        ['PRICE'] = tostring(actual_price),   -- price
+        ['QUANTITY'] = tostring(volume),   -- N lots to buy/sell
+    }
+
+    msg = 'Sending transaction. Account: '..tostring(ACCOUNT)
+    msg = msg..' | CLIENT_CODE: '..tostring(CLIENT_CODE)
+    msg = msg..' | TYPE: '..tostring('L')
+    msg = msg..' | CLASSCODE: '..tostring(MOEX_CLASS)
+    msg = msg..' | SECCODE: '..tostring(FUTURES_LIST[futures_index].futures_code)
+    msg = msg..' | OPERATION: '..tostring(operation_type)
+    msg = msg..' | PRICE: '..tostring(actual_price)
+    msg = msg..' | QUANTITY: '..tostring(volume)
+    logging('TRANSACTION', msg)
+
+    if REAL_TRADING == true then
+        local res = sendTransaction(transaction)
+        FUTURES_LIST[futures_index].entry_price = actual_price
+        if res ~= nil then
+            msg = res
+            logging('ERROR', msg)
+        end
+    else
+        FUTURES_LIST[futures_index].entry_price = actual_price
+    end
 end
